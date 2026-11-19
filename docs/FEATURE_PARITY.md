@@ -1,6 +1,6 @@
 # Android feature ledger and acceptance gates
 
-**Target:** Realme 15T, reported 8 GB physical RAM. **Current phone status: not tested.**
+**Target:** Realme 15T, reported 8 GB physical RAM. **Current phone status: 0.2.0 APK installation/dashboard launch observed; Linux preparation fails on the Perl hard link before engine readiness.** A separate non-destructive 0.2.1 repair is implemented and host-regression-tested, but has not been verified on the phone. See [PHONE_REPAIR.md](PHONE_REPAIR.md).
 
 **Delivery decision, 19 November 2026:** the required handoff is an ordinary installable APK, not technical Termux setup. The user explicitly selected **“Limited version nahi chahiye”** when offered an initial limited phone-only version, a server-assisted APK or retaining the full requirement. No reduced-scope app or server deployment is authorised by that selection. Full parity remains an unmet acceptance criterion. After the subsequent request to make the APK possible, a real native-hosted development APK was built, with the local engine bundled and automatic private Linux setup. This is not approval to reduce scope or claim a complete port. Do not present a wrapper, placeholder or bootstrap archive as completion.
 
@@ -46,7 +46,7 @@ Legend:
 | macOS saved steps and platform-only helpers | Preserved upstream source; platform guards untouched | **Not Android features**; new platform implementations would be required |
 | Push notifications and mobile foreground lifecycle | APK has a visible, explicitly started foreground service/Stop notification; no boot autorun or native push transport | Phone lifecycle unverified; no always-on guarantee |
 | Enterprise/team/admin/white-label capabilities | Source-available enterprise adapter and upstream entitlements unchanged | License/partner agreement may be required; no bypass implemented |
-| Native installable Android APK | Signed native dashboard/service APK with bundled local engine and original source archive | **Development APK built; phone installation/boot unverified** |
+| Native installable Android APK | Signed native dashboard/service APK with original local engine/source archives; separate small repair imports those full archives from the original installed APK without touching its private data | **0.2.0 installed/launched; Linux extraction failed; repaired engine boot still unverified** |
 | Fully offline AI inference | No model weights or on-device inference backend installed | **Not provided**; Groq inference requires internet |
 
 ## Feature switches are not portability fixes

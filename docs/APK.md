@@ -2,6 +2,12 @@
 
 The user requires an ordinary downloadable APK with the full original feature requirements. They declined a reduced-scope replacement. **The development build is progress toward that request, not acceptance of reduced scope and not a full-parity release.**
 
+## Observed phone failure and non-destructive repair
+
+The owner has now **installed and launched** the 0.2.0 development APK on their phone. Linux preparation stops at the `usr/bin/perl -> usr/bin/perl5.38.2` hard-link operation; the engine has **not** reached readiness. The download/installation issue is no longer the current blocker. Do not uninstall or clear the app's data.
+
+The 0.2.1 **Terminator Repair** profile installs as a separate package and imports the entire hash-verified engine and original source archives from the already installed, certificate-pinned 0.2.0 APK. It is a small **repair download with an explicit installed-APK dependency**, not a reduced engine or a standalone full-payload APK. It never accesses or migrates the old app's private workspace. Its extractor safely copies complete regular files when Android refuses hard links, and diagnostics retain exception types/causes. [Repair flow and evidence](PHONE_REPAIR.md). Actual repaired phone boot and full parity remain unverified.
+
 ## What the development APK contains
 
 - A native Android dashboard, automatic private Linux setup, foreground engine service and Stop notification.
@@ -21,7 +27,7 @@ The user requires an ordinary downloadable APK with the full original feature re
 
 ## Remaining full-parity blockers
 
-- Realme installation/boot, modern Android execution policy, native ARM64 modules under Android PRoot, WebView workflows and long-running behavior are not certified by Linux or compiler tests.
+- Realme APK installation/dashboard launch is observed, but Linux setup failed before engine boot. The repair, modern Android execution policy, native ARM64 modules under Android PRoot, WebView workflows and long-running behavior are not certified by Linux or compiler tests.
 - No native Android Accessibility/MediaProjection self-control bridge is implemented. The APK does not request those permissions or claim phone takeover.
 - PRoot is not Docker, a VM or a per-bot kernel security sandbox. Those original integrations need a supported execution host or substantial additional work, not a hidden feature flag.
 - Optional CLI engines, Ghidra/JADX/JDK/Frida/browser binaries, third-party subscriptions and OAuth accounts are not all provisioned or tested. Retaining their code does not make them available.

@@ -12,6 +12,8 @@ import java.util.*;
  * relative inside the private root, never activated as absolute host paths. */
 public final class SafeTar {
     public interface Progress { void update(long bytes, int files) throws IOException; }
+    // Package-private injection exercises Android providers that deny hard links.
+    interface HardLinker { void create(Path link, Path existing) throws IOException; }
     private static final long MAX_FILE = 512L * 1024 * 1024;
     private static final long MAX_TOTAL = 2L * 1024 * 1024 * 1024;
     private static final int MAX_ENTRIES = 60000;
@@ -23,10 +25,13 @@ public final class SafeTar {
         Link(String n, String t, boolean h) { name=n; target=t; hard=h; }
     }
     public static final class Result {
-        public long bytes; public int files, links, skippedSpecial;
+        public long bytes; public int files, links, skippedSpecial, copiedHardLinks;
     }
 
     public static Result extract(InputStream input, File destination, Progress progress) throws IOException {
+        return extract(input,destination,progress,(link,existing)->Files.createLink(link,existing));
+    }
+    static Result extract(InputStream input, File destination, Progress progress, HardLinker hardLinker) throws IOException {
         // Linux/Android only: ':' and literal backslashes are valid package filenames
         // (dpkg multiarch metadata and escaped systemd unit names), not separators.
         if (File.separatorChar != '/') throw new IOException("A POSIX filesystem is required");
@@ -120,7 +125,17 @@ public final class SafeTar {
             Path path=inside(root,link.name),target=linkDestination(root,path,link.target,true);
             noLinkParents(root,path.getParent());noLinkParents(root,target.getParent());
             if(!Files.isRegularFile(target,LinkOption.NOFOLLOW_LINKS)) throw new IOException("Hard link target is not a regular file");
-            Files.createLink(path,target);result.links++;
+            if(Files.exists(path,LinkOption.NOFOLLOW_LINKS))throw new IOException("Hard link destination already exists: "+link.name);
+            try { hardLinker.create(path,target); }
+            catch(IOException|UnsupportedOperationException denied) {
+                // Android app-private filesystems/providers can refuse link(2).
+                // Keep the complete target bytes as a new private file instead;
+                // never overwrite a conflict or turn the link into an escape.
+                if(Files.exists(path,LinkOption.NOFOLLOW_LINKS))throw new IOException("Hard link destination conflict: "+link.name,denied);
+                try { copyHardLink(root,path,target,result,progress); }
+                catch(IOException copyError) { copyError.addSuppressed(denied);throw copyError; }
+            }
+            result.links++;
         }
         for(Link link:links) if(!link.hard) {
             Path path=inside(root,link.name),target=linkDestination(root,path,link.target,false);
@@ -131,6 +146,26 @@ public final class SafeTar {
         return result;
     }
 
+    private static void copyHardLink(Path root,Path path,Path target,Result result,Progress progress)throws IOException {
+        noLinkParents(root,path.getParent());noLinkParents(root,target.getParent());
+        if(!Files.isRegularFile(target,LinkOption.NOFOLLOW_LINKS))throw new IOException("Hard link copy target is not regular");
+        long length=Files.size(target);
+        if(length>MAX_FILE||length>MAX_TOTAL-result.bytes)throw new IOException("Hard link copies exceed extraction size limit");
+        try(InputStream in=Files.newInputStream(target,StandardOpenOption.READ,LinkOption.NOFOLLOW_LINKS);
+            OutputStream out=Files.newOutputStream(path,StandardOpenOption.CREATE_NEW,StandardOpenOption.WRITE)) {
+            byte[] buffer=new byte[65536];long left=length;
+            while(left>0) {
+                if(Thread.currentThread().isInterrupted())throw new InterruptedIOException("Cancelled");
+                int n=in.read(buffer,0,(int)Math.min(buffer.length,left));
+                if(n<0)throw new EOFException("Hard link copy source became shorter");
+                if(n==0)continue;
+                out.write(buffer,0,n);left-=n;result.bytes+=n;
+                if(progress!=null)progress.update(result.bytes,result.files);
+            }
+            if(in.read()!=-1)throw new IOException("Hard link copy source changed length");
+        }
+        mode(path,false,Files.isExecutable(target));result.copiedHardLinks++;
+    }
     private static Path linkDestination(Path root,Path path,String raw,boolean hard) throws IOException {
         if(raw==null||raw.isEmpty()||raw.indexOf('\0')>=0||raw.length()>4096) throw new IOException("Invalid archive link");
         Path target;

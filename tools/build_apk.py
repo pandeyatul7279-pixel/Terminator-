@@ -18,6 +18,7 @@ import shutil
 import subprocess
 import tarfile
 import urllib.request
+import xml.etree.ElementTree as ET
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -252,14 +253,95 @@ def prepare() -> dict:
     return meta
 
 
+def prepare_repair() -> dict:
+    """Small side-by-side repair; imports all heavy assets from the exact installed APK.
+
+    The old ephemeral CI key is unavailable. This is expressly not a re-signed
+    update, a remote engine, or a reduced engine. Existing private data is untouched.
+    """
+    CACHE.mkdir(parents=True, exist_ok=True)
+    lock = json.loads((APP / 'inputs.lock.json').read_text())
+    source = json.loads((APP / 'repair-source.lock.json').read_text())
+    if source['rootfsSha256'] != lock['rootfs']['sha256']:
+        raise ValueError('Repair source and rootfs pins disagree')
+    proot = download(lock['proot'], CACHE)
+    native = BUILD / 'native/arm64-v8a'
+    native.mkdir(parents=True, exist_ok=True)
+    with tarfile.open(proot) as archive:
+        for name, output in [('root/bin/proot', 'libproot.so'),
+                             ('root/libexec/proot/loader', 'libproot-loader.so'),
+                             ('root/libexec/proot/loader32', 'libproot-loader32.so')]:
+            data = archive.extractfile(name).read()
+            if not data.startswith(b'\x7fELF'):
+                raise ValueError('Expected actual PRoot ELF')
+            (native / output).write_bytes(data)
+    xz_archive = download(next(s for s in lock['sources'] if s['name'] == 'xz-java-source.tar.gz'), CACHE)
+    xz = CACHE / 'xz-java'
+    if not (xz / 'src/org/tukaani/xz/XZInputStream.java').is_file():
+        xz.mkdir(exist_ok=True)
+        with tarfile.open(xz_archive) as archive:
+            for entry in archive:
+                path = Path(entry.name)
+                if path.is_absolute() or '..' in path.parts or entry.issym() or entry.islnk():
+                    raise ValueError('Unsafe XZ source entry')
+                target = xz.joinpath(*path.parts[1:])
+                if entry.isdir():
+                    target.mkdir(parents=True, exist_ok=True)
+                elif entry.isfile():
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_bytes(archive.extractfile(entry).read())
+    assets = BUILD / 'assets'
+    if assets.exists(): shutil.rmtree(assets)
+    assets.mkdir(parents=True)
+    # Complete current port sources, including this repair, remain exportable too.
+    port = assets / 'repair-port-sources.tar.xz'
+    raw, zipped, archive = gzip_tar(port)
+    try:
+        files = subprocess.check_output(['git', 'ls-files', '--cached', '--others', '--exclude-standard', '-z'], cwd=ROOT).split(b'\0')
+        for encoded in sorted(set(files)):
+            if not encoded: continue
+            path = ROOT / os.fsdecode(encoded)
+            if path.is_file() and not path.is_symlink():
+                tar_add(archive, path, 'android-port/' + path.relative_to(ROOT).as_posix())
+    finally:
+        archive.close(); zipped.close(); raw.close()
+    meta = {
+        'schemaVersion': 1, 'version': '0.2.1-repair-test', 'versionCode': 1,
+        'package': 'dev.terminator.phone.repair', 'architecture': 'arm64-v8a',
+        'minSdk': 26, 'targetSdk': 28, 'parity': 'NOT_CERTIFIED', 'phoneTested': False,
+        'deliveryMode': 'installed-apk-import',
+        'importFromInstalled': {
+            'packageName': source['sourcePackage'], 'versionCode': source['sourceVersionCode'],
+            'versionName': source['sourceVersionName'], 'signerSha256': source['sourceSignerSha256'],
+            'apkSha256': source['sourceApkSha256'], 'apkBytes': source['sourceApkBytes'],
+            'privateDataImported': False,
+        },
+        'rootfs': lock['rootfs'],
+        **{key: source[key] for key in ('runtime', 'sourceArchive', 'nativeSources', 'upstreams')},
+        'portSources': describe(port),
+    }
+    (assets / 'build-info.json').write_text(json.dumps(meta, indent=2) + '\n')
+    (BUILD / 'build-info.json').write_text(json.dumps(meta, indent=2) + '\n')
+    (assets / 'feature-status.txt').write_text((ROOT / 'docs/APK.md').read_text() + '\n\n' + (ROOT / 'docs/FEATURE_PARITY.md').read_text())
+    (assets / 'license-notes.txt').write_text((ROOT / 'NOTICE').read_text() + '\n\n' + (ROOT / 'docs/SECURITY_AND_LICENSES.md').read_text() + '\n\nRepair build: PRoot/talloc/XZ sources and all preserved original Git blobs are imported byte-for-byte from the pinned original installed APK, checked against SHA-256/length, and exportable. Current repair port sources are bundled and exportable separately. Existing private app data is not accessed or migrated. No enterprise entitlement or trademark permission is granted. Private evaluation only.\n\n' + json.dumps(lock, indent=2))
+    return meta
+
+
 def build(java_home: Path, env: dict) -> Path:
     java = java_home / 'bin/java'
+    meta = json.loads((BUILD / 'build-info.json').read_text())
+    repair = meta['package'] == 'dev.terminator.phone.repair'
+    manifest = APP / ('src/repair/AndroidManifest.xml' if repair else 'src/main/AndroidManifest.xml')
+    prefix = 'Terminator-0.2.1-repair' if repair else 'Terminator-0.2.0'
+    declared = ET.parse(manifest).getroot()
+    if meta['package'] != declared.get('package') or meta['version'] != declared.get('{http://schemas.android.com/apk/res/android}versionName'):
+        raise ValueError('Build metadata and Android package/version disagree')
     for folder in ('generated', 'classes', 'dex'):
         path = BUILD / folder
         if path.exists(): shutil.rmtree(path)
         path.mkdir(parents=True)
     run([TOOLS / 'aapt2', 'compile', '--dir', APP / 'src/main/res', '-o', BUILD / 'resources.zip'], env=env)
-    run([TOOLS / 'aapt2', 'link', '-o', BUILD / 'resources.ap_', '--manifest', APP / 'src/main/AndroidManifest.xml', '-I', TOOLS / 'android.jar', '--java', BUILD / 'generated', BUILD / 'resources.zip'], env=env)
+    run([TOOLS / 'aapt2', 'link', '-o', BUILD / 'resources.ap_', '--manifest', manifest, '-I', TOOLS / 'android.jar', '--custom-package', 'dev.terminator.phone', '--java', BUILD / 'generated', BUILD / 'resources.zip'], env=env)
     source_paths = sorted((APP / 'src/main/java').rglob('*.java')) + sorted((BUILD / 'generated').rglob('*.java')) + sorted((CACHE / 'xz-java/src').rglob('*.java'))
     sources = BUILD / 'java-sources.txt'; sources.write_text('\n'.join(str(p) for p in source_paths) + '\n')
     run([java, '-jar', TOOLS / 'ecj.jar', '-8', '-proc:none', '-nowarn', '-bootclasspath', str(TOOLS / 'android.jar') + ':' + str(TOOLS / 'core-lambda-stubs.jar'), '-d', BUILD / 'classes', '@' + str(sources)])
@@ -281,7 +363,7 @@ def build(java_home: Path, env: dict) -> Path:
         run([java_home / 'bin/keytool', '-genkeypair', '-keystore', key, '-storetype', 'JKS', '-alias', 'terminator-test', '-keyalg', 'RSA', '-keysize', '3072', '-validity', '10000', '-dname', 'CN=Terminator Development,OU=Local Test,O=Terminator', '-storepass:file', password, '-keypass:file', password, '-noprompt'])
         key.chmod(0o600)
     if not password.exists(): raise ValueError('Existing signing key has no local password file; do not replace a release key')
-    output = ARTIFACTS / 'Terminator-0.2.0-arm64-test.apk'
+    output = ARTIFACTS / (prefix + '-arm64-test.apk')
     run([java, '-jar', TOOLS / 'apksigner.jar', 'sign', '--ks', key, '--ks-key-alias', 'terminator-test', '--ks-pass', 'file:' + str(password), '--v1-signing-enabled', 'true', '--v2-signing-enabled', 'true', '--v3-signing-enabled', 'true', '--v4-signing-enabled', 'false', '--out', output, aligned])
     verification = subprocess.check_output([str(java), '-jar', str(TOOLS / 'apksigner.jar'), 'verify', '--verbose', '--print-certs', str(output)], cwd=ROOT, text=True)
     print(verification)
@@ -291,7 +373,7 @@ def build(java_home: Path, env: dict) -> Path:
     (ARTIFACTS / (output.name + '.sha256')).write_text(f'{digest}  {output.name}\n')
     meta = json.loads((BUILD / 'build-info.json').read_text())
     meta['apk'] = {'name': output.name, 'bytes': output.stat().st_size, 'sha256': digest, 'signaturesVerified': True}
-    (ARTIFACTS / 'Terminator-0.2.0-build.json').write_text(json.dumps(meta, indent=2) + '\n')
+    (ARTIFACTS / (prefix + '-build.json')).write_text(json.dumps(meta, indent=2) + '\n')
     print('APK BUILT:', output, output.stat().st_size, 'bytes', digest, flush=True)
     return output
 
@@ -300,13 +382,19 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--prepare', action='store_true')
     parser.add_argument('--build', action='store_true')
+    parser.add_argument('--repair', action='store_true', help='Separate package; imports exact assets from the already installed original APK')
     args = parser.parse_args()
     if not (args.prepare or args.build): parser.error('Pass --prepare and/or --build')
     BUILD.mkdir(parents=True, exist_ok=True); ARTIFACTS.mkdir(exist_ok=True)
     java, env = tools()
-    if args.prepare: prepare()
+    if args.prepare: (prepare_repair if args.repair else prepare)()
+    if args.repair and not args.prepare:
+        if not (BUILD / 'build-info.json').is_file() or json.loads((BUILD / 'build-info.json').read_text()).get('deliveryMode') != 'installed-apk-import':
+            parser.error('Run --repair --prepare before building a repair APK')
     if args.build:
         if not (BUILD / 'assets/build-info.json').exists(): parser.error('Run --prepare first')
+        if (json.loads((BUILD / 'build-info.json').read_text()).get('deliveryMode') == 'installed-apk-import') != args.repair:
+            parser.error('Prepared profile mismatch; pass --repair for repair builds, or --prepare for the full bundle')
         build(java, env)
 
 if __name__ == '__main__': main()

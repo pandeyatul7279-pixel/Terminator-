@@ -36,12 +36,13 @@ public final class MainActivity extends Activity {
     private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
     private TextView text(String value,int size,int color){TextView t=new TextView(this);t.setText(value);t.setTextColor(color);t.setTextSize(size);t.setPadding(0,dp(6),0,dp(6));return t;}
     private Button button(String label,Runnable action){Button b=new Button(this);b.setText(label);b.setAllCaps(false);b.setTextColor(BG);b.setTextSize(15);b.setBackgroundTintList(android.content.res.ColorStateList.valueOf(MINT));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(52));p.setMargins(0,dp(6),0,dp(6));b.setLayoutParams(p);b.setOnClickListener(v->action.run());return b;}
+    private boolean repair(){return "dev.terminator.phone.repair".equals(getPackageName());}
     private void home(){
         destroyWeb();container=new LinearLayout(this);container.setOrientation(1);container.setBackgroundColor(BG);setContentView(container);
         ScrollView scroll=new ScrollView(this);container.addView(scroll,new LinearLayout.LayoutParams(-1,-1));dashboard=new LinearLayout(this);dashboard.setOrientation(1);dashboard.setPadding(dp(24),dp(24),dp(24),dp(32));scroll.addView(dashboard);
         TextView eyebrow=text("PHONE-HOSTED AI WORKSPACE",11,MINT);eyebrow.setLetterSpacing(.14f);dashboard.addView(eyebrow);
-        TextView title=text("Terminator",38,TEXT);title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);dashboard.addView(title);
-        dashboard.addView(text("Original engine. A real Android app.\nNo Termux commands.",17,MUTED));
+        TextView title=text(repair()?"Terminator Repair":"Terminator",repair()?32:38,TEXT);title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);dashboard.addView(title);
+        dashboard.addView(text(repair()?"Linux installer repair · original local engine\nPurana app/data delete nahi hoga.":"Original engine. A real Android app.\nNo Termux commands.",17,MUTED));
         TextView badge=text("DEVELOPMENT BUILD  ·  NOT FULL-PARITY CERTIFIED",11,0xfffbbf24);badge.setPadding(0,dp(18),0,dp(18));dashboard.addView(badge);
         LinearLayout card=new LinearLayout(this);card.setOrientation(1);card.setPadding(dp(18),dp(14),dp(18),dp(16));GradientDrawable shape=new GradientDrawable();shape.setColor(CARD);shape.setCornerRadius(dp(18));card.setBackground(shape);dashboard.addView(card);
         status=text("Ready to prepare",22,TEXT);status.setTypeface(Typeface.DEFAULT,Typeface.BOLD);card.addView(status);detail=text("Pehli baar Start dabayein. App engine khud taiyar karegi.",14,MUTED);card.addView(detail);
@@ -49,7 +50,8 @@ public final class MainActivity extends Activity {
         start=button("Prepare & start bot",this::consentAndStart);dashboard.addView(start);
         open=button("Open bot",this::openBot);dashboard.addView(open);
         dashboard.addView(button("Stop engine",this::stopBot));
-        dashboard.addView(text("BUNDLED ORIGINALS",11,MINT));dashboard.addView(text("OpenMausBot 0.1.169  /  REA 6.9.0\nARM64 Node 24.22.1 + original source archive",14,MUTED));
+        dashboard.addView(text("ORIGINAL ENGINE FILES",11,MINT));dashboard.addView(text("OpenMausBot 0.1.169  /  REA 6.9.0\nARM64 Node 24.22.1 + original source archive",14,MUTED));
+        if(repair())dashboard.addView(text("Pehli taiyari ke liye purana Terminator Test installed rakhein. Uske signed APK se poore engine/source archives verify karke copy honge. Private chats, keys ya settings access/migrate nahi honge. Yeh alag app hai, purane app ka in-place update nahi.",13,MUTED));
         dashboard.addView(button("Connect REA tools",this::connectRea));dashboard.addView(button("Import a file",this::importFile));
         dashboard.addView(button("Feature status & important limits",()->assetDialog("Feature status","feature-status.txt")));
         dashboard.addView(button("Sources & licenses",this::sourceDialog));dashboard.addView(button("Diagnostics",this::diagnostics));
@@ -57,14 +59,14 @@ public final class MainActivity extends Activity {
     }
     private void refreshState(){
         if(status==null)return;RuntimeService service=RuntimeService.current;
-        if(service==null){status.setText("Engine band hai");detail.setText("Start dabayein. Pehli taiyari automatic hogi; uske baad saved workspace khulega.");progress.setVisibility(View.GONE);start.setEnabled(true);open.setEnabled(false);return;}
+        if(service==null){status.setText("Engine band hai");detail.setText(repair()?"Start dabayein. Purane installed APK se files copy hongi; purana app/data nahi badlega. 2 GB khaali jagah rakhein.":"Start dabayein. Pehli taiyari automatic hogi; uske baad saved workspace khulega.");progress.setVisibility(View.GONE);start.setEnabled(true);open.setEnabled(false);return;}
         status.setText(service.phase);detail.setText(service.detail);start.setEnabled(!service.active());open.setEnabled(service.ready);
         progress.setVisibility(service.active()&&!service.ready?View.VISIBLE:View.GONE);progress.setIndeterminate(service.progress<0);if(service.progress>=0)progress.setProgress(service.progress);
     }
     private void consentAndStart(){
         if(getPreferences(0).getBoolean("runtime-consent-v1",false)){startBot();return;}
         new AlertDialog.Builder(this).setTitle("Phone par original engine taiyar karein?")
-            .setMessage("Pehli baar lagbhag 65 MB Ubuntu environment download hoga. Kam-se-kam 1.6 GB free storage rakhein. Aapko commands ya Termux install nahi karna hai.\n\nYeh testing APK hai: desktop VM/Docker, Android app-control aur poori feature parity abhi verified nahi hain. Original code aur approval controls retained hain; Linux environment bot ke liye security sandbox nahi hai.\n\nEngine chalte waqt visible notification aur battery usage hogi. Stop kabhi bhi daba sakte hain. Paid AI key/subscription ismein nahi hai. Play Protect ya phone security band mat karein.")
+            .setMessage((repair()?"Yeh alag repair app hai, purane app ka update nahi. Purana Terminator Test installed rakhein: uske public signed APK se poora engine aur original source archives copy honge. Purana private data/settings na access honge na delete; yahan naya private workspace banega. Kam-se-kam 2 GB free storage rakhein.\n\n":"Kam-se-kam 1.6 GB free storage rakhein.\n\n")+"Pehli baar lagbhag 65 MB Ubuntu environment download hoga. Aapko commands ya Termux install nahi karna hai.\n\nYeh testing APK hai: desktop VM/Docker, Android app-control aur poori feature parity abhi verified nahi hain. Original code aur approval controls retained hain; Linux environment bot ke liye security sandbox nahi hai.\n\nEngine chalte waqt visible notification aur battery usage hogi. Stop kabhi bhi daba sakte hain. Paid AI key/subscription ismein nahi hai. Play Protect ya phone security band mat karein.")
             .setNegativeButton("Abhi nahi",null).setPositiveButton("Prepare & start",(d,w)->{getPreferences(0).edit().putBoolean("runtime-consent-v1",true).apply();startBot();}).show();
     }
     private void startBot(){startForegroundService(new Intent(this,RuntimeService.class).setAction(RuntimeService.START));handler.postDelayed(this::refreshState,150);}
@@ -109,9 +111,9 @@ public final class MainActivity extends Activity {
     @Override public void onBackPressed(){if(web!=null){if(web.canGoBack())web.goBack();else home();}else super.onBackPressed();}
     @Override public void onRequestPermissionsResult(int code,String[] permissions,int[] result){super.onRequestPermissionsResult(code,permissions,result);if(code==42&&microphone!=null){if(result.length>0&&result[0]==PackageManager.PERMISSION_GRANTED&&web!=null)microphone.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});else microphone.deny();microphone=null;}}
     private void importFile(){startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"),43);}
-    private void sourceDialog(){new AlertDialog.Builder(this).setTitle("Original sources & licenses").setItems(new String[]{"Export all original source blobs","Export PRoot / talloc / XZ corresponding source","Read licenses & provenance"},(d,which)->{if(which==2)assetDialog("Licenses & provenance","license-notes.txt");else exportSource(which==0);}).show();}
-    private void exportSource(boolean originals){
-        try{JSONObject info=new RuntimeInstaller(this,(a,b,c)->{}).metadata();JSONObject source=info.getJSONObject(originals?"sourceArchive":"nativeSources");exportAsset=source.getString("asset");exportHash=source.getString("sha256");exportBytes=source.getLong("bytes");
+    private void sourceDialog(){new AlertDialog.Builder(this).setTitle("Original sources & licenses").setItems(repair()?new String[]{"Export all original source blobs","Export PRoot / talloc / XZ corresponding source","Read licenses & provenance","Export repair app source"}:new String[]{"Export all original source blobs","Export PRoot / talloc / XZ corresponding source","Read licenses & provenance"},(d,which)->{if(which==2)assetDialog("Licenses & provenance","license-notes.txt");else exportSource(which==0?"sourceArchive":which==1?"nativeSources":"portSources");}).show();}
+    private void exportSource(String section){
+        try{JSONObject info=new RuntimeInstaller(this,(a,b,c)->{}).metadata();JSONObject source=info.getJSONObject(section);exportAsset=source.getString("asset");exportHash=source.getString("sha256");exportBytes=source.getLong("bytes");
             startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType(exportAsset.endsWith(".xz")?"application/x-xz":"application/gzip").putExtra(Intent.EXTRA_TITLE,"terminator-"+exportAsset),44);
         }catch(Exception error){message("Export nahi hua",error.getMessage());}
     }
@@ -122,7 +124,7 @@ public final class MainActivity extends Activity {
             File dir=new File(getFilesDir(),"home/files");Files.createDirectories(dir.toPath());File target=new File(dir,System.currentTimeMillis()+"-"+name);
             try(InputStream in=getContentResolver().openInputStream(uri);OutputStream out=Files.newOutputStream(target.toPath(),StandardOpenOption.CREATE_NEW)){RuntimeInstaller.copy(in,out,128L*1024*1024);}final String shown=target.getName();runOnUiThread(()->message("File import ho gayi","Bot workspace: /home/terminator/files/"+shown+"\nFile automatically execute nahi hui hai."));
         }catch(Exception e){runOnUiThread(()->message("Import nahi hua",e.getMessage()));}},"document-import").start();
-        if(request==44){final String asset=exportAsset,hash=exportHash;final long expected=exportBytes;new Thread(()->{try{MessageDigest digest=MessageDigest.getInstance("SHA-256");try(InputStream input=new DigestInputStream(getAssets().open(asset),digest);OutputStream output=getContentResolver().openOutputStream(uri,"w")){RuntimeInstaller.copy(input,output,expected);}if(!RuntimeInstaller.hex(digest.digest()).equals(hash))throw new IOException("Export checksum failed");runOnUiThread(()->message("Sources export ho gaye","Archive ka SHA-256 verify ho gaya. Original source files aur provenance shamil hain."));}catch(Exception e){runOnUiThread(()->message("Export nahi hua",e.getMessage()));}},"source-export").start();}
+        if(request==44){final String asset=exportAsset,hash=exportHash;final long expected=exportBytes;new Thread(()->{try{MessageDigest digest=MessageDigest.getInstance("SHA-256");try(InputStream input=new DigestInputStream(new RuntimeAssets(this).open(asset),digest);OutputStream output=getContentResolver().openOutputStream(uri,"w")){RuntimeInstaller.copy(input,output,expected);}if(!RuntimeInstaller.hex(digest.digest()).equals(hash))throw new IOException("Export checksum failed");runOnUiThread(()->message("Sources export ho gaye","Archive ka SHA-256 verify ho gaya. Original source files aur provenance shamil hain."));}catch(Exception e){runOnUiThread(()->message("Export nahi hua",e.getMessage()));}},"source-export").start();}
     }
     private void connectRea(){RuntimeService service=RuntimeService.current;if(service==null||!service.ready){message("Pehle bot start karein","Engine ready hone ke baad REA tools connect ho sakte hain.");return;}
         new AlertDialog.Builder(this).setTitle("Original REA MCP connect karein?").setMessage("REA software-analysis tools provide karta hai. Sirf apne ya authorised software par use karein. App pehle original MCP connection test karegi; tools ko chupke se permission nahi degi. Kuch decompilers/Frida jaise external engines alag prerequisites hain.").setNegativeButton("Cancel",null).setPositiveButton("Test & connect",(d,w)->{

@@ -22,17 +22,18 @@ final class RuntimeInstaller {
     private final Context context; private final Status status;
     private long lastProgress;
     RuntimeInstaller(Context c,Status s){context=c;status=s;}
-    JSONObject metadata() throws Exception {
-        try(InputStream in=context.getAssets().open("build-info.json")){return new JSONObject(new String(readBounded(in,1024*1024),StandardCharsets.UTF_8));}
-    }
+    JSONObject metadata() throws Exception { return new RuntimeAssets(context).metadata(); }
     Plan prepare() throws Exception {
         if(!Arrays.asList(Build.SUPPORTED_ABIS).contains("arm64-v8a"))throw new IOException("Yeh APK ARM64 phone ke liye hai.");
-        JSONObject info=metadata(),os=info.getJSONObject("rootfs"),run=info.getJSONObject("runtime");
+        RuntimeAssets assets=new RuntimeAssets(context);
+        JSONObject info=assets.metadata(),os=info.getJSONObject("rootfs"),run=info.getJSONObject("runtime");
         File base=context.getFilesDir(); Plan p=new Plan();p.metadata=info;
         p.root=new File(base,"linux-"+os.getString("sha256").substring(0,12));
         p.runtime=new File(base,"engine-"+run.getString("sha256").substring(0,12));
         boolean needsRoot=!complete(p.root,os.getString("sha256")),needsRuntime=!complete(p.runtime,run.getString("sha256"));
-        if((needsRoot||needsRuntime)&&new StatFs(base.getAbsolutePath()).getAvailableBytes()<1600L*1024*1024)throw new IOException("Phone mein kam-se-kam 1.6 GB khaali jagah chahiye.");
+        long requiredMb=assets.imported()?2000:1600;
+        if((needsRoot||needsRuntime)&&new StatFs(base.getAbsolutePath()).getAvailableBytes()<requiredMb*1024*1024)throw new IOException("Phone mein kam-se-kam "+(assets.imported()?"2 GB":"1.6 GB")+" khaali jagah chahiye.");
+        assets.prepare(status);
         if(needsRoot){
             File image=new File(context.getCacheDir(),"ubuntu-"+os.getString("sha256")+".tar.xz");
             if(!verified(image,os.getString("sha256"),os.getLong("bytes")))download(os,image);
@@ -43,7 +44,7 @@ final class RuntimeInstaller {
         if(needsRuntime){
             status.update("Original engine taiyar ho raha hai","OpenMausBot, REA aur ARM64 Node install ho rahe hain.",0);
             String asset=run.getString("asset");File compressed=new File(context.getCacheDir(),asset);
-            try(InputStream in=context.getAssets().open(asset);OutputStream out=new FileOutputStream(compressed)){copy(in,out,run.getLong("bytes"));}
+            try(InputStream in=assets.open(asset);OutputStream out=new FileOutputStream(compressed)){copy(in,out,run.getLong("bytes"));}
             if(!verified(compressed,run.getString("sha256"),run.getLong("bytes")))throw new IOException("Bundled engine checksum galat hai. APK dobara download karein.");
             install(compressed,p.runtime,run.getString("sha256"),asset.endsWith(".xz"),run.getLong("expandedBytes"),"Original engine taiyar ho raha hai");
             if(!compressed.delete())compressed.deleteOnExit();
@@ -70,14 +71,19 @@ final class RuntimeInstaller {
     private void install(File compressed,File destination,String hash,boolean xz,long expectedExpanded,String title)throws Exception{
         File staging=new File(context.getFilesDir(),destination.getName()+".installing");removeTree(staging.toPath());Files.createDirectory(staging.toPath());
         try{
+            SafeTar.Result extracted;
             try(InputStream file=new BufferedInputStream(new FileInputStream(compressed),65536);InputStream in=xz?new XZInputStream(file,131072):new GZIPInputStream(file,65536)){
-                SafeTar.extract(in,staging,(bytes,count)->{
+                extracted=SafeTar.extract(in,staging,(bytes,count)->{
                     long now=SystemClock.elapsedRealtime();if(now-lastProgress>750){lastProgress=now;int percent=(int)Math.min(99,bytes*100/Math.max(1,expectedExpanded));status.update(title,count+" files • "+(bytes/1048576)+" MB",percent);}
                 });
             }
             Files.write(new File(staging,".terminator-complete").toPath(),hash.getBytes(StandardCharsets.US_ASCII),StandardOpenOption.CREATE_NEW);
             removeTree(destination.toPath());Files.move(staging.toPath(),destination.toPath(),StandardCopyOption.ATOMIC_MOVE);
-        }catch(Exception error){removeTree(staging.toPath());throw error;}
+            status.update(title,extracted.files+" files • "+extracted.links+" links • "+extracted.copiedHardLinks+" Android hard-link copies",100);
+        }catch(Exception error){
+            try{removeTree(staging.toPath());}catch(IOException cleanup){error.addSuppressed(cleanup);}
+            throw new IOException(title+": "+error.getClass().getSimpleName()+": "+String.valueOf(error.getMessage()),error);
+        }
     }
     private void download(JSONObject os,File output)throws Exception{
         status.update("Pehli baar download","Ubuntu environment • lagbhag 65 MB. Ismein AI model shamil nahi hai.",0);
@@ -107,12 +113,8 @@ final class RuntimeInstaller {
             @Override public FileVisitResult postVisitDirectory(Path d,IOException e)throws IOException{if(e!=null)throw e;Files.delete(d);return FileVisitResult.CONTINUE;}
         });
     }
-    static boolean verified(File file,String expected,long bytes)throws Exception{
-        if(!file.isFile()||file.length()!=bytes)return false;MessageDigest digest=MessageDigest.getInstance("SHA-256");
-        try(InputStream in=new FileInputStream(file)){byte[] buffer=new byte[65536];for(int n;(n=in.read(buffer))!=-1;)digest.update(buffer,0,n);}
-        return MessageDigest.isEqual(hex(digest.digest()).getBytes(StandardCharsets.US_ASCII),expected.getBytes(StandardCharsets.US_ASCII));
-    }
-    static String hex(byte[] bytes){StringBuilder s=new StringBuilder();for(byte b:bytes)s.append(String.format(Locale.ROOT,"%02x",b&255));return s.toString();}
+    static boolean verified(File file,String expected,long bytes)throws Exception{return VerifiedFiles.matches(file,expected,bytes);}
+    static String hex(byte[] bytes){return VerifiedFiles.hex(bytes);}
     static byte[] readBounded(InputStream in,int limit)throws IOException{ByteArrayOutputStream out=new ByteArrayOutputStream();copy(in,out,limit);return out.toByteArray();}
-    static void copy(InputStream in,OutputStream out,long max)throws IOException{long total=0;byte[] buffer=new byte[65536];for(int n;(n=in.read(buffer))!=-1;){if(Thread.currentThread().isInterrupted())throw new InterruptedIOException("Cancelled");total+=n;if(total>max)throw new IOException("File size limit exceeded");out.write(buffer,0,n);}}
+    static void copy(InputStream in,OutputStream out,long max)throws IOException{VerifiedFiles.copy(in,out,max);}
 }

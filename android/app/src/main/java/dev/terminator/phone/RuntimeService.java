@@ -87,8 +87,16 @@ public final class RuntimeService extends Service {
             LocalApi.call(origin,"GET","/api/config",null,null,cookieHeader());
             ready=true;update("Bot ready hai","Open bot dabayein. AI provider apni key se configure karein. Full Android parity abhi certified nahi hai.",-1);
             int exit=process.waitFor();if(!stopping)throw new IOException("Engine band ho gaya (exit "+exit+"). Retry ya Diagnostics kholein.");
-        }catch(InterruptedException|InterruptedIOException error){Thread.currentThread().interrupt();update("Band hai","Aapne engine rok diya.",-1);
-        }catch(Exception error){log("ERROR: "+safe(error.getMessage()));update("Start nahi ho paya",safe(error.getMessage()),-1);
+        }catch(InterruptedException error){Thread.currentThread().interrupt();update("Band hai","Aapne engine rok diya.",-1);
+        }catch(Exception error){
+            if(stopping||Thread.currentThread().isInterrupted()) {
+                Thread.currentThread().interrupt();update("Band hai","Aapne engine rok diya.",-1);
+            } else {
+                // Keep the type, causes/errno and stack in bounded private diagnostics.
+                // SocketTimeoutException is an InterruptedIOException, not a user stop.
+                StringWriter trace=new StringWriter();error.printStackTrace(new PrintWriter(trace));log("ERROR: "+trace.toString());
+                update("Start nahi ho paya",safe(error.getClass().getSimpleName()+": "+String.valueOf(error.getMessage())), -1);
+            }
         }finally{
             ready=false;Process child=process;if(child!=null&&child.isAlive()){
                 child.destroy();try{if(!child.waitFor(4,TimeUnit.SECONDS))child.destroyForcibly();}catch(InterruptedException e){child.destroyForcibly();Thread.currentThread().interrupt();}
@@ -124,10 +132,10 @@ public final class RuntimeService extends Service {
         Notification.Builder n=new Notification.Builder(this,CHANNEL).setSmallIcon(dev.terminator.phone.R.drawable.ic_launcher).setContentTitle("Terminator · "+phase).setContentText(detail).setContentIntent(open).setOngoing(true).setVisibility(Notification.VISIBILITY_PRIVATE).addAction(new Notification.Action.Builder(null,"Stop",stop).build());
         if(progress>=0)n.setProgress(100,progress,false);return n.build();
     }
-    private void update(String title,String message,int percent){phase=title;detail=message==null?"Unknown error":message;progress=percent;if(running.get())((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(7,notification());}
+    private void update(String title,String message,int percent){if(!title.equals(phase)||percent==100)log(title+": "+message);phase=title;detail=message==null?"Unknown error":message;progress=percent;if(running.get())((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(7,notification());}
     private static String safe(String message){if(message==null)return "Unknown engine error";return message.replaceAll("(?i)(omb_sess_|omb_pair_|gsk_|sk-)[A-Za-z0-9_-]+","[credential redacted]");}
     private void log(String message){synchronized(logs){logs.append(safe(message)).append('\n');if(logs.length()>16000)logs.delete(0,logs.length()-16000);}}
-    String diagnostics(){synchronized(logs){return "Android "+Build.VERSION.RELEASE+" · "+Build.MANUFACTURER+" "+Build.MODEL+"\nABI "+Arrays.toString(Build.SUPPORTED_ABIS)+"\nFull parity: NOT CERTIFIED\n\n"+logs;}}
+    String diagnostics(){synchronized(logs){return "Package "+getPackageName()+"\nAndroid "+Build.VERSION.RELEASE+" · "+Build.MANUFACTURER+" "+Build.MODEL+"\nABI "+Arrays.toString(Build.SUPPORTED_ABIS)+"\nFull parity: NOT CERTIFIED\n\n"+logs;}}
     String cookieHeader(){synchronized(cookies){return LocalApi.cookieHeader(cookies);}}
     List<String> sessionCookies(){synchronized(cookies){return new ArrayList<>(cookies);}}
     boolean active(){return running.get();}
