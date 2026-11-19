@@ -1,0 +1,59 @@
+name: Toolkit and upstream Linux smoke checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  toolkit:
+    name: Toolkit tests (not an Android device test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - run: make test
+      - run: make kit
+
+  apk-extractor:
+    name: Android compile and complete hard-link-denial regression (not a device test)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      # This temporary signer is for a throwaway compile test only. Never deliver
+      # this test output as an update to the locally signed repair package.
+      - name: Compile, align and verify the separate repair APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/build_apk.py --repair --prepare --build
+      - name: Obtain the already hash-pinned rootfs for extraction regression
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json
+          from tools.build_apk import APP, CACHE, download
+          download(json.loads((APP / 'inputs.lock.json').read_text())['rootfs'], CACHE)
+          PY
+      - name: Exercise exact shipped Java importer and full Ubuntu with hard links denied
+        env:
+          APK_TEST_ROOTFS: .cache/apk-runtime/ubuntu-rootfs-arm64.tar.xz
+        run: python3 tools/test_apk_java.py -v
+
+  upstream-runtime:
+    name: Original upstream runtime — Linux x64 only
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.22.1'
+      - run: make runtime-install
+      - run: make runtime-test

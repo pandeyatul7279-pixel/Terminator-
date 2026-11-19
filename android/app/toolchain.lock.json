@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "jdk": {
+    "filename": "jdk4py-25.0.5.0-py3-none-manylinux_2_17_x86_64.whl",
+    "url": "https://files.pythonhosted.org/packages/d7/40/2ead979633b86b571c042cc15c78fac5a310a33f1b36a2585a1586b4efa1/jdk4py-25.0.5.0-py3-none-manylinux_2_17_x86_64.whl",
+    "digests": {
+      "blake2b_256": "d7402ead979633b86b571c042cc15c78fac5a310a33f1b36a2585a1586b4efa1",
+      "md5": "b7833020d130d7feede4b2dcb0398ccd",
+      "sha256": "c19842f9d22035f212aef197255dafbcc94e2460b6819a37f34a0eb6727953c5"
+    }
+  },
+  "components": [
+    {
+      "name": "android.jar",
+      "repository": "Sable/android-platforms",
+      "path": "android-35/android.jar",
+      "gitBlob": "2d6652edf0fb6046a23638f3a2f2c6246c745b08",
+      "sha256": "4566663c3876e022b4fa4ced8c8697c4ab1688267f090114fd92d027b32e619b",
+      "bytes": 27092450
+    },
+    {
+      "name": "aapt2",
+      "repository": "msft-mirror-aosp/platform.prebuilts.sdk",
+      "path": "tools/linux/bin/aapt2",
+      "gitBlob": "adee4602e5a2041e647431b4ba4925f90d0b511e",
+      "sha256": "0f4474300b737e9bf68fcb3cbb3338c958e51899e3be93c6f429b3aae0ca48df",
+      "bytes": 6456944
+    },
+    {
+      "name": "zipalign",
+      "repository": "msft-mirror-aosp/platform.prebuilts.sdk",
+      "path": "tools/linux/bin/zipalign",
+      "gitBlob": "bd4691c0888152e0461c2ef8e38cafc7e1dce81d",
+      "sha256": "db322ca007a4ceac0e34688ad896a6ba95166334324c3d8c9db30c4e73d6cf1b",
+      "bytes": 271248
+    },
+    {
+      "name": "lib64/libc++.so",
+      "repository": "msft-mirror-aosp/platform.prebuilts.sdk",
+      "path": "tools/linux/lib64/libc++.so",
+      "gitBlob": "ddc0bb60a119a0c651e3923e41a393559ef3fd54",
+      "sha256": "a7292b027ec262cefed580771f063f12d06bf9f40ccd50b3d1f57ffedc1d962e",
+      "bytes": 1405904
+    },
+    {
+      "name": "lib64/libc++.so.1",
+      "repository": "msft-mirror-aosp/platform.prebuilts.sdk",
+      "path": "tools/linux/lib64/libc++.so.1",
+      "gitBlob": "24886b1354c96b75157ce01bd797705f1ed57878",
+      "sha256": "7eb2812ec39ab5c31f2fc9f906f412c713e76e0d07d6a6911108c7f886e24945",
+      "bytes": 1082624
+    },
+    {
+      "name": "apksigner.jar",
+      "repository": "msft-mirror-aosp/platform.prebuilts.sdk",
+      "path": "tools/linux/lib/apksigner.jar",
+      "gitBlob": "222614191f2cc4131dbe0241e3f8687103ef7de9",
+      "sha256": "9469c60e5e40fc5c44a2f2338509cb6600cdf065e9b50f9fa3ca6c5be5bae6a9",
+      "bytes": 1074052
+    },
+    {
+      "name": "ecj.jar",
+      "repository": "NorbertXYZ/eclipse-maven",
+      "path": "org/eclipse/jdt/ecj/3.33.0/ecj-3.33.0.jar",
+      "gitBlob": "a8f827f350d0e9a47af6ef8e262af3dcc7e0c5f6",
+      "sha256": "f7686c4960cf70c2ebc5c500a73a8cfc04541b730c18f1c5c21329889b137f45",
+      "bytes": 3160927,
+      "mavenCentralSha1": "4041d27ffea3c9351e3121f9bfe94dea4723d583"
+    },
+    {
+      "name": "r8.jar",
+      "repository": "msft-mirror-aosp/platform.prebuilts.r8",
+      "path": "r8.jar",
+      "gitBlob": "ed6d5f67fd115b370ecbe6df264e8e90b42b4fae",
+      "sha256": "43d80449b448c7ec428fdadd10b967c0452545de9f7f9965361816dcf5022d30",
+      "bytes": 18123896
+    },
+    {
+      "name": "core-lambda-stubs.jar",
+      "repository": "msft-mirror-aosp/platform.prebuilts.sdk",
+      "path": "tools/core-lambda-stubs.jar",
+      "gitBlob": "c9a69d1ab0662659a18cbaaa9959567adeb27944",
+      "sha256": "48ebd3b6614a8e4367d1dbda1222aed5ffb6b874214922412af5c9fbcd5e877a",
+      "bytes": 16741
+    }
+  ]
+}

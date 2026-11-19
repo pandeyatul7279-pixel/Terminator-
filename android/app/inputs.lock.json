@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "rootfs": {
+    "name": "ubuntu-rootfs-arm64.tar.xz",
+    "repository": "EXALAB/AnLinux-Resources",
+    "gitBlob": "2daa70bda0d05310898b3ca1074179544b154663",
+    "bytes": 65051348,
+    "sha256": "7480ebcf0169caa9de9810e9f6022f8fde4097deeb4f4018c13346f765342a90",
+    "url": "https://api.github.com/repos/EXALAB/AnLinux-Resources/git/blobs/2daa70bda0d05310898b3ca1074179544b154663",
+    "path": "Rootfs/Ubuntu/arm64/ubuntu-rootfs-arm64.tar.xz",
+    "expandedBytes": 353013771,
+    "os": "Ubuntu 24.04.1 LTS",
+    "distributionCommit": "9fc4d89270619634d746659eeb79ac82bdddac3b"
+  },
+  "node": {
+    "name": "node-linux-arm64-24.22.1.tgz",
+    "url": "https://registry.npmjs.org/node-linux-arm64/-/node-linux-arm64-24.22.1.tgz",
+    "bytes": 52645776,
+    "sha256": "c620f1313d25fcb1dc25657f45e5c3ef6c9f734904cf6b99440661b5b72f5c51",
+    "integrity": "sha512-1uD+Qvcu14ZJ6JVhsAiOeAiCQI0Nnu+y60VJnwhq8nGr+1l7XKFnNlZ42f619d+h5UzRQtO3pwpBEM2FYR/83Q=="
+  },
+  "proot": {
+    "name": "proot-android-aarch64.tar.gz",
+    "repository": "green-green-avk/build-proot-android",
+    "gitBlob": "45158586e587e1adf9a75db687dfdb08baec83c5",
+    "path": "packages/proot-android-aarch64.tar.gz",
+    "bytes": 179448,
+    "sha256": "9629eb30cdf86e95c6ba681f8ab89c6fdaa9eca093d5577163513c99af5ca281",
+    "sourceCommit": "b40accf05dfddbaf44758aa666ade79c57255005",
+    "buildRepositoryCommit": "01f83b8841358450c78333d1b33ab30d4943bec4"
+  },
+  "sources": [
+    {
+      "name": "proot-source.tar.gz",
+      "url": "https://codeload.github.com/green-green-avk/proot/tar.gz/refs/tags/v0.15_release",
+      "bytes": 260715,
+      "sha256": "d678603aa80aea84969d2897d2a4f98acc8f6008defca960e40ce4ad4e8e893e"
+    },
+    {
+      "name": "talloc-corresponding-source.tar.gz",
+      "url": "https://codeload.github.com/samba-team/samba/tar.gz/refs/tags/talloc-2.1.14",
+      "bytes": 36401495,
+      "sha256": "2903ab2cb2c72e701e920fcbff909a59940695bb090e5a5398c8c302a13d2d72"
+    },
+    {
+      "name": "xz-java-source.tar.gz",
+      "url": "https://codeload.github.com/tukaani-project/xz-java/tar.gz/refs/tags/v1.9",
+      "bytes": 93423,
+      "sha256": "36cb44eb77a939b0084a81b65f0aada362d84ab39aa2e26a15adfcbb71201912"
+    }
+  ]
+}

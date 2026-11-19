@@ -1,0 +1,13 @@
+{
+  "name": "terminator-phone-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Unmodified upstream packages for experimental ARM64 Android PRoot testing; not a native Android port.",
+  "engines": {
+    "node": ">=24.22.1"
+  },
+  "dependencies": {
+    "openmausbot": "0.1.169",
+    "rea-agents": "6.9.0"
+  }
+}

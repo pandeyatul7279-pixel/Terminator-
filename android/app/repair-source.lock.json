@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "sourcePackage": "dev.terminator.phone",
+  "sourceVersionCode": 2,
+  "sourceVersionName": "0.2.0-test",
+  "sourceSignerSha256": "2a462b1ce45587f753724250059ba3bcd91736febc83dce3f85d255180b80e9c",
+  "sourceApkSha256": "8580191259d750fd0382eceb6780adb8a96fe777ed46cdc49e11a952f47803bf",
+  "sourceApkBytes": 325412043,
+  "rootfsSha256": "7480ebcf0169caa9de9810e9f6022f8fde4097deeb4f4018c13346f765342a90",
+  "runtime": {
+    "asset": "runtime.tar.xz",
+    "bytes": 107109048,
+    "sha256": "c9a17e63a359e20bafbf2b0d771b0a3ffc929ad2db718569f7c80ca5ffbb22f8",
+    "expandedBytes": 551347697
+  },
+  "sourceArchive": {
+    "asset": "original-sources.tar.xz",
+    "bytes": 181875240,
+    "sha256": "76ecefbbed7552846ed7cf8d938aeaad0bb8b6f6917f242c6d285947984f6141",
+    "originalGitBlobs": 22839,
+    "originalGitBytes": 390825039,
+    "externalLfsAssetsIncluded": false
+  },
+  "nativeSources": {
+    "asset": "native-corresponding-sources.tar.gz",
+    "bytes": 36205168,
+    "sha256": "785fb6ec76fe50744eeb2b1f91237ca86422c728691bc34f64c946620d407417"
+  },
+  "upstreams": {
+    "openmausbot": "0.1.169",
+    "rea-agents": "6.9.0",
+    "node": "24.22.1"
+  }
+}

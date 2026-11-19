@@ -1,0 +1,9 @@
+{
+  "name": "terminator-node-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A pinned glibc Node runtime for Ubuntu PRoot, not Termux's Bionic environment.",
+  "dependencies": {
+    "node": "24.22.1"
+  }
+}
