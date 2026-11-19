@@ -1,0 +1,36 @@
+name: Private single-file Drive delivery
+
+# Transfers an already built APK; does not rebuild, shrink, or publish it.
+# A one-file upload capability must first be supplied to the private evaluation
+# draft through the authenticated control plane, never through this Git file.
+on:
+  push:
+    branches: ['arena/**']
+    paths:
+      - '.github/workflows/deliver-apk-to-drive.yml'
+      - 'tools/drive_delivery.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: private-single-file-drive-delivery
+  cancel-in-progress: false
+
+jobs:
+  transfer:
+    name: Transfer verified APK to the owner's private Drive
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Test resumable transfer without network or credentials
+        run: python3 -m unittest discover -s tests -p 'test_drive_delivery.py' -v
+      - name: Transfer the existing signed APK, without public sharing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVALUATION_RELEASE_ID: '450848004'
+        run: python3 tools/drive_delivery.py
