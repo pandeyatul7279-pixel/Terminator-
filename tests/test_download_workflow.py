@@ -11,12 +11,19 @@ WORKFLOW = ROOT / '.github/workflows/private-apk-download.yml'
 class PrivateDownloadWorkflowTests(unittest.TestCase):
     def test_embedded_delivery_python_compiles(self):
         content = WORKFLOW.read_text()
-        program = content.split("python3 - <<'PY'\n", 1)[1].rsplit('\n          PY', 1)[0]
-        compile(textwrap.dedent(program), str(WORKFLOW), 'exec')
+        programs = re.findall(r"python3 - <<'PY'\n(.*?)\n          PY", content, re.S)
+        self.assertEqual(len(programs), 2)
+        for program in programs:
+            compile(textwrap.dedent(program), str(WORKFLOW), 'exec')
 
     def test_only_draft_release_uploads_are_allowed(self):
         content = WORKFLOW.read_text()
-        self.assertIn("'--draft', '--prerelease'", content)
+        self.assertIn("'-F', 'draft=true'", content)
+        self.assertIn("matches[0]['draft'] is not True", content)
+        self.assertNotIn("release_path + '/tags/'", content)
+        self.assertNotIn("'release', 'upload'", content)
+        self.assertIn("upload = release['upload_url'].split('{', 1)[0]", content)
+        self.assertIn('Unexpected asset upload destination', content)
         self.assertIn("if release['draft'] is not True:", content)
         self.assertIn("if result['draft'] is not True:", content)
         self.assertNotIn('upload-artifact@', content)

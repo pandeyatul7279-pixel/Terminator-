@@ -1,7 +1,8 @@
 name: Private Android evaluation download
 
-# This builds an internal evaluation APK, never a public release. In particular,
-# the preserved upstream enterprise/ sources do not permit redistribution.
+# An internal evaluation APK, never a public release. Preserved upstream
+# enterprise/ sources do not permit redistribution. A maintainer must create
+# the private draft first; missing/ambiguous/published releases fail closed.
 on:
   push:
     branches: ['arena/**']
@@ -22,10 +23,39 @@ jobs:
     timeout-minutes: 35
     env:
       RELEASE_TAG: phone-apk-0.2.0-test
+      RELEASE_TITLE: Terminator 0.2.0 — private phone evaluation
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
+      - name: Verify private draft upload before the expensive build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess, urllib.parse
+          def gh(*args):
+              return subprocess.check_output(['gh', *args], text=True)
+          repo = os.environ['GITHUB_REPOSITORY']
+          releases = json.loads(gh('api', f'repos/{repo}/releases?per_page=100'))
+          matches = [r for r in releases if r['tag_name'] == os.environ['RELEASE_TAG'] or r['name'] == os.environ['RELEASE_TITLE']]
+          if len(matches) != 1 or matches[0]['draft'] is not True:
+              raise SystemExit('A single pre-created private evaluation draft is required')
+          release = matches[0]
+          upload = release['upload_url'].split('{', 1)[0]
+          if upload != f'https://uploads.github.com/repos/{repo}/releases/{release["id"]}/assets':
+              raise SystemExit('Unexpected asset upload destination')
+          name = 'upload-probe-' + os.environ['GITHUB_RUN_ID'] + '.txt'
+          for old in release['assets']:
+              if old['name'] == name:
+                  gh('api', '--method', 'DELETE', f'repos/{repo}/releases/assets/{old["id"]}')
+          asset = json.loads(gh('api', '--method', 'POST', upload + '?' + urllib.parse.urlencode({'name': name}),
+              '-H', 'Content-Type: text/plain', '--input', 'README.md'))
+          if asset['state'] != 'uploaded':
+              raise SystemExit('Private draft upload probe failed')
+          gh('api', '--method', 'DELETE', f'repos/{repo}/releases/assets/{asset["id"]}')
+          print('Private numeric-ID asset upload: verified')
+          PY
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24.22.1'
@@ -41,14 +71,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 tools/test_apk_java.py -v
-      - name: Store only in an owner-only draft release
+      - name: Store only in a maintainer-only draft release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import hashlib, json, os, pathlib, subprocess, urllib.error, urllib.request
+          import hashlib, json, os, pathlib, subprocess, urllib.error, urllib.parse, urllib.request
 
           def gh(*args):
               return subprocess.check_output(['gh', *args], text=True)
@@ -56,19 +86,20 @@ jobs:
           repo, tag = os.environ['GITHUB_REPOSITORY'], os.environ['RELEASE_TAG']
           release_path = f'repos/{repo}/releases'
           releases = json.loads(gh('api', release_path + '?per_page=100'))
-          existing = [r for r in releases if r['tag_name'] == tag]
-          if not existing:
-              gh('release', 'create', tag, '--repo', repo, '--draft', '--prerelease',
-                 '--target', os.environ['GITHUB_SHA'], '--title', 'Terminator 0.2.0 — private phone evaluation',
-                 '--notes', 'Internal development/evaluation build only. Phone boot and full feature parity are NOT certified. Upstream enterprise redistribution restrictions remain intact. This build generates a new development signing key; it is not an in-place update for a differently signed APK. Do not uninstall an existing app without backing up its data.')
-              release = json.loads(gh('api', release_path + '/tags/' + tag))
-          else:
-              release = existing[0]
+          existing = [r for r in releases if r['tag_name'] == tag or r['name'] == os.environ['RELEASE_TITLE']]
+          if len(existing) != 1:
+              raise SystemExit('A single pre-created private evaluation draft is required')
+          release = existing[0]
           if release['draft'] is not True:
               raise SystemExit('Refusing to upload this bundle to a published/public release')
           release_id = release['id']
-          gh('api', '--method', 'PATCH', release_path + '/' + str(release_id),
-             '-f', 'target_commitish=' + os.environ['GITHUB_SHA'])
+          release = json.loads(gh('api', '--method', 'PATCH', release_path + '/' + str(release_id),
+             '-f', 'tag_name=' + tag, '-f', 'target_commitish=' + os.environ['GITHUB_SHA'],
+             '-F', 'draft=true', '-F', 'prerelease=true',
+             '-f', 'body=Internal development/evaluation build only. Phone boot and full feature parity are NOT certified. Upstream enterprise redistribution restrictions remain intact: DO NOT PUBLISH. This build generates a new development signing key; it is not an in-place update for a differently signed APK. Do not uninstall an existing app without backing up its data.'))
+          upload = release['upload_url'].split('{', 1)[0]
+          if upload != f'https://uploads.github.com/repos/{repo}/releases/{release_id}/assets':
+              raise SystemExit('Unexpected asset upload destination')
           meta = json.loads(pathlib.Path('artifacts/Terminator-0.2.0-build.json').read_text())
           apk = pathlib.Path('artifacts') / meta['apk']['name']
           with apk.open('rb') as stream:
@@ -79,8 +110,15 @@ jobs:
               raise SystemExit('Unexpected phone/parity assertion in build manifest')
           files = [apk, pathlib.Path(str(apk) + '.sha256'), pathlib.Path(str(apk) + '.signature.txt'),
                    pathlib.Path('artifacts/Terminator-0.2.0-build.json')]
-          subprocess.run(['gh', 'release', 'upload', tag, '--repo', repo, '--clobber',
-                          *map(str, files)], check=True)
+          # Tag-based draft discovery may return 404/untagged. Use the actual
+          # numeric release upload URL, keeping all operations on the draft.
+          for path in files:
+              for old in release['assets']:
+                  if old['name'] == path.name:
+                      gh('api', '--method', 'DELETE', f'repos/{repo}/releases/assets/{old["id"]}')
+              mime = 'application/vnd.android.package-archive' if path == apk else 'application/octet-stream'
+              gh('api', '--method', 'POST', upload + '?' + urllib.parse.urlencode({'name': path.name}),
+                 '-H', 'Content-Type: ' + mime, '--input', str(path))
           result = json.loads(gh('api', release_path + '/' + str(release_id)))
           if result['draft'] is not True:
               raise SystemExit('Release must remain a private draft')
@@ -88,12 +126,13 @@ jobs:
               assets = [a for a in result['assets'] if a['name'] == path.name]
               if len(assets) != 1 or assets[0]['state'] != 'uploaded' or assets[0]['size'] != path.stat().st_size:
                   raise SystemExit('Uploaded asset verification failed: ' + path.name)
-          # Confirm a scoped signed asset URL works without an account token.
-          # Never print that URL, and never forward GH_TOKEN to the asset host.
+          # Never print a scoped URL, or forward GH_TOKEN to the asset host.
           class NoRedirect(urllib.request.HTTPRedirectHandler):
               def redirect_request(self, req, fp, code, msg, headers, newurl):
                   return None
           asset = next(a for a in result['assets'] if a['name'] == apk.name)
+          if asset.get('digest') and asset['digest'] != 'sha256:' + digest:
+              raise SystemExit('Hosted APK digest does not match the signed build')
           req = urllib.request.Request(f'https://api.github.com/repos/{repo}/releases/assets/{asset["id"]}',
               headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
                        'Accept': 'application/octet-stream', 'User-Agent': 'Terminator-private-download'})
@@ -101,15 +140,17 @@ jobs:
               urllib.request.build_opener(NoRedirect).open(req, timeout=30)
               raise SystemExit('Expected a scoped asset redirect, not an inline response')
           except urllib.error.HTTPError as response:
-              if response.code != 302:
+              if response.code not in (302, 303, 307):
                   raise
               scoped_url = response.headers['Location']
+          if urllib.parse.urlsplit(scoped_url).hostname not in ('release-assets.githubusercontent.com', 'objects.githubusercontent.com'):
+              raise SystemExit('Unexpected signed asset download host')
           with urllib.request.urlopen(urllib.request.Request(scoped_url, method='HEAD'), timeout=30) as response:
               if response.status != 200 or int(response.headers['Content-Length']) != apk.stat().st_size:
                   raise SystemExit('Direct asset download verification failed')
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
               summary.write('## Private evaluation APK stored\n\n')
-              summary.write(f'Owner-only draft release: {result["html_url"]}\n\n')
+              summary.write(f'Maintainer-only draft release: {result["html_url"]}\n\n')
               summary.write(f'APK bytes: {apk.stat().st_size}\n\nSHA-256: `{digest}`\n\n')
               summary.write('Not phone-tested or full-parity certified. Never publish this bundled enterprise source without distribution permission.\n')
           print(json.dumps({'draftReleaseId': release_id, 'apkBytes': apk.stat().st_size,
