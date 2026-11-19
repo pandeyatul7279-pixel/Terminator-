@@ -1,0 +1,28 @@
+# Downloaded upstream trees, toolchains and local test data are reproducible inputs.
+.cache/
+.local/
+node_modules/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Phone workspace data, credentials and installer outputs must not enter Git.
+.env
+.env.*
+!.env.example
+*.apk
+*.aab
+*.apks
+*.xapk
+*.deb
+*.exe
+*.tgz
+*.tar.gz
+*.zip
+artifacts/
+reports/local/
+android/local.properties
+android/signing/
+*.jks
+*.keystore
+*.p12

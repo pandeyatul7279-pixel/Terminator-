@@ -1,0 +1,20 @@
+Terminator experimental Android runtime toolkit
+
+This repository's newly authored toolkit is licensed under Apache-2.0.
+It references and installs, without rebranding or changing their feature code:
+
+- OpenMausBot by Milind Soni / upstream contributors:
+  https://github.com/milind-soni/OpenMausBot
+  Open-source core Apache-2.0; enterprise/ uses a separate Enterprise License.
+  Upstream LICENSE and NOTICE are retained under licenses/.
+- REA by morluto / upstream contributors:
+  https://github.com/morluto/rea
+  REA-authored code MIT; third-party components retain their own terms.
+  Upstream MIT LICENSE is retained under licenses/.
+
+Submodule references, package integrity records and original per-project
+licenses are preserved by the source manifests and original downloads.
+This notice does not grant trademark rights, commercial entitlements,
+proprietary tool licenses or ownership of third-party code.
+
+See docs/SECURITY_AND_LICENSES.md before redistribution.

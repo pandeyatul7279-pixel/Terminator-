@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "recordedOn": "2026-11-19",
+  "purpose": "Preserve complete pinned Git blobs, including REA submodule references. External Git LFS payloads are not materialized. Not an Android parity certification.",
+  "projects": {
+    "openmausbot": {
+      "repository": "milind-soni/OpenMausBot",
+      "commit": "b832de78c43c8d76e92d6f50fb1a8d33be364480",
+      "tree": "ec5aa11bf02e282983fd5c4ee5f7328ae2f1a2e8",
+      "path": "openmausbot",
+      "manifest": "manifests/openmausbot.json",
+      "manifestSha256": "fca0e8cd684bfc67c08a376612799a9325224c09c90ddf2d1b2066c15702957d",
+      "fileCount": 8668,
+      "blobBytes": 254771798,
+      "externalAssetAudit": {
+        "gitLfsPointerFiles": 0,
+        "gitLfsUniqueObjectsNotFetched": 0,
+        "gitLfsUniquePayloadBytesNotFetched": 0
+      }
+    },
+    "rea": {
+      "repository": "morluto/rea",
+      "commit": "bd5c985b3fc8b3f26caaa94d88b66a0953dc66a8",
+      "tree": "a249b5ca5dfc355e7b37f9734acb808800bf6bb8",
+      "path": "rea",
+      "manifest": "manifests/rea.json",
+      "manifestSha256": "77c68a447bbb2a6bdced7b79e035aa6328963b7323a2e8695f478070c6ebe4d5",
+      "fileCount": 9257,
+      "blobBytes": 111402663,
+      "externalAssetAudit": {
+        "gitLfsPointerFiles": 0,
+        "gitLfsUniqueObjectsNotFetched": 0,
+        "gitLfsUniquePayloadBytesNotFetched": 0
+      }
+    },
+    "jadx-headless-mcp": {
+      "repository": "1013503897/jadx-headless-mcp",
+      "commit": "5844800a486d2248fa949b74c9896285f5b54de2",
+      "tree": "0f280ac59d851c4a126f9f5efbe26366d2fd033c",
+      "path": "rea/third_party/jadx-headless-mcp",
+      "manifest": "manifests/jadx-headless-mcp.json",
+      "manifestSha256": "d61aab35650d011dd1b56690136f87218e9f90d4b50bc089a57dfdfef150e048",
+      "fileCount": 50,
+      "blobBytes": 270622,
+      "externalAssetAudit": {
+        "gitLfsPointerFiles": 0,
+        "gitLfsUniqueObjectsNotFetched": 0,
+        "gitLfsUniquePayloadBytesNotFetched": 0
+      }
+    },
+    "binwalk": {
+      "repository": "ReFirmLabs/binwalk",
+      "commit": "4fdab3d464d97b68e0af9088df3f9e2e1545b21c",
+      "tree": "55c7e0f63d235f06f885d3829152405fabb27428",
+      "path": "rea/third_party/binwalk",
+      "manifest": "manifests/binwalk.json",
+      "manifestSha256": "1660f01bd758522b2ac31007fd78d73fa432e19d83d1d9c2a3d011c30b120b83",
+      "fileCount": 210,
+      "blobBytes": 2182544,
+      "externalAssetAudit": {
+        "gitLfsPointerFiles": 0,
+        "gitLfsUniqueObjectsNotFetched": 0,
+        "gitLfsUniquePayloadBytesNotFetched": 0
+      }
+    },
+    "unblob": {
+      "repository": "onekey-sec/unblob",
+      "commit": "1fcc7a0a584a70a96c31f5a276c20944d199a089",
+      "tree": "cd030f7bbea6c34204091a81ca20bf6a1186dbc4",
+      "path": "rea/third_party/unblob",
+      "manifest": "manifests/unblob.json",
+      "manifestSha256": "d5155f6938c213a762bffcc56eae2ea010beb2df2bbf9d958023af3e9004578b",
+      "fileCount": 3086,
+      "blobBytes": 2147588,
+      "externalAssetAudit": {
+        "gitLfsPointerFiles": 2506,
+        "gitLfsUniqueObjectsNotFetched": 892,
+        "gitLfsUniquePayloadBytesNotFetched": 222010238
+      }
+    },
+    "ghidra-nativeaot": {
+      "repository": "Washi1337/ghidra-nativeaot",
+      "commit": "effeb734fc570c32650f88b159608979dc7b423e",
+      "tree": "8a4f83a6eca1e1e131352cbb40cd3845f37ee618",
+      "path": "rea/third_party/ghidra-nativeaot",
+      "manifest": "manifests/ghidra-nativeaot.json",
+      "manifestSha256": "63822abd0cb5a642558662b2fcba34709523fa3c56f437341a00b90a513362c7",
+      "fileCount": 64,
+      "blobBytes": 1135345,
+      "externalAssetAudit": {
+        "gitLfsPointerFiles": 0,
+        "gitLfsUniqueObjectsNotFetched": 0,
+        "gitLfsUniquePayloadBytesNotFetched": 0
+      }
+    },
+    "wakaru": {
+      "repository": "pionxzh/wakaru",
+      "commit": "8219bf5016a063d7fb215101a8c45d5959ec733f",
+      "tree": "042f2332fad224fbbdcdd151882fe07c194c60e7",
+      "path": "rea/third_party/wakaru",
+      "manifest": "manifests/wakaru.json",
+      "manifestSha256": "53234c43acdbb735ee1b0af1d740001a7776cfd5a06f7e4b3bed6ba9f7aa2366",
+      "fileCount": 1504,
+      "blobBytes": 18914479,
+      "externalAssetAudit": {
+        "gitLfsPointerFiles": 0,
+        "gitLfsUniqueObjectsNotFetched": 0,
+        "gitLfsUniquePayloadBytesNotFetched": 0
+      }
+    }
+  }
+}

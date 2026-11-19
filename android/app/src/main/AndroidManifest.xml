@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.terminator.phone" android:versionCode="2" android:versionName="0.2.0-test">
+    <!-- API 28 is intentional: the bundled PRoot guest executes its private Linux files.
+         Raising this without a read-only executable mapping breaks Android's W^X policy. -->
+    <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="28" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <application android:label="Terminator Test" android:icon="@drawable/ic_launcher" android:theme="@style/AppTheme" android:allowBackup="false" android:fullBackupContent="false" android:extractNativeLibs="true" android:networkSecurityConfig="@xml/network_security_config" android:usesCleartextTraffic="false" android:supportsRtl="true">
+        <activity android:name=".MainActivity" android:exported="true" android:configChanges="keyboardHidden|orientation|screenSize" android:windowSoftInputMode="adjustResize">
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+        </activity>
+        <service android:name=".RuntimeService" android:exported="false" android:stopWithTask="false" />
+    </application>
+</manifest>
